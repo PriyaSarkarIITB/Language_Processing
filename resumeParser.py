@@ -8,22 +8,9 @@ import zipfile
 # import ner
 from convertPDFToText import convertPDFToText
 from convertDocxToText import convertDocxToText
-from convertRtfToText import convertRtfToText
+#from convertRtfToText import convertRtfToText
 
-from clint.textui import progress, puts, colored, columns, indent
 
-import MySQLdb as mdb 
-
-def printSourceLines(function):
-    '''Can be used during debugging for printing a function's code'''
-    try:
-        print "".join(inspect.getsourcelines(function)[0])
-    except:
-        print "Invalid function/Failed to retrieve source code"
-
-def printList(inputList):
-    for el in inputList:
-        print el, "\n"
 
 class exportToCSV:
     def __init__(self, fileName='resultsCSV.txt', resetFile=False):
@@ -31,20 +18,22 @@ class exportToCSV:
                'NAME',
                'EMAIL1', 'EMAIL2', 'EMAIL3', 'EMAIL4',
                'PHONE1', 'PHONE2', 'PHONE3', 'PHONE4',
-               'DOB',
+               'INSTITUTES1','YEARS1',
+               'INSTITUTES2','YEARS2',
+               'INSTITUTES3','YEARS3',
+               'INSTITUTES4','YEARS4',
+               'INSTITUTES5','YEARS5',
                'EXPERIENCE',
-               'DEGREES','INSTITUTES','YEARS'
-               'PASSPORT',
-               'TIME'
+               'DEGREES',
                ]
         if not os.path.isfile(fileName) or resetFile:
             # Will create/reset the file as per the evaluation of above condition
             fOut = open(fileName, 'w')
             fOut.close()
-        fIn = open(fileName)
+        fIn = open(fileName) ########### Open file if file already present
         inString = fIn.read()
         fIn.close()
-        if len(inString) <= 0:
+        if len(inString) <= 0: ######### If File already exsists but is empty, it adds the header
             fOut = open(fileName, 'w')
             fOut.write(','.join(headers)+'\n')
             fOut.close()
@@ -56,340 +45,33 @@ class exportToCSV:
         try:
             writeString += str(infoDict['fileName']) + ','
             writeString += str(infoDict['name']) + ','
-            writeString += str(','.join(infoDict['email'][:4])) + ','
+            
+            if infoDict['email']:
+                writeString += str(','.join(infoDict['email'][:4])) + ','
             if len(infoDict['email']) < 4:
                 writeString += ','*(4-len(infoDict['email']))
-            writeString += str(','.join(infoDict['phone'][:4])) + ','
+            if infoDict['phone']:
+                writeString += str(','.join(infoDict['phone'][:4])) + ','
             if len(infoDict['phone']) < 4:
-                writeString += ','*(4-len(infoDict['phone']))
-            writeString += str(','.join(infoDict['degree'][:4])) + ',' # For the remaining elements
-            writeString += str(','.join(infoDict['%sinstitute'%'c\.?a']))
-            writeString +=str(','.join(infoDict['%syear'%'c\.?a']))
-            writeString += str(','.join(infoDict['%sinstitute'%'b\.?com']))
-            writeString +=str(','.join(infoDict['%syear'%'b\.?com']))
-            writeString += str(','.join(infoDict['%sinstitute'%'icwa']))
-            writeString +=str(','.join(infoDict['%syear'%'icwa']))
-            writeString += str(','.join(infoDict['%sinstitute'%'m\.?com']))
-            writeString +=str(','.join(infoDict['%syear'%'m\.?com']))
-            writeString += str(','.join(infoDict['%sinstitute'%'mba']))
-            writeString +=str(','.join(infoDict['%syear'%'mba'])) 
+                writeString += ','*(4-len(infoDict['phone']))            
+            writeString += str(infoDict['%sinstitute'%'c\\.?a'])+","
+            writeString +=str(infoDict['%syear'%'c\\.?a'])+","
+            writeString += str(infoDict['%sinstitute'%'b\\.?com'])+","
+            writeString +=str(infoDict['%syear'%'b\\.?com'])+","
+            writeString += str(infoDict['%sinstitute'%'icwa'])+","
+            writeString +=str(infoDict['%syear'%'icwa'])+","
+            writeString += str(infoDict['%sinstitute'%'m\\.?com'])+","
+            writeString +=str(infoDict['%syear'%'m\\.?com'])+","
+            writeString += str(infoDict['%sinstitute'%'mba'])+","
+            writeString +=str(infoDict['%syear'%'mba'])+","
+            writeString += str(infoDict['experience']) + ','
+            writeString += str(infoDict['degree']) + '\n' # For the remaining elements
             fOut.write(writeString)
         except:
             fOut.write('FAILED_TO_WRITE\n')
         fOut.close()
 
-# def insertToDBforeducations(infoList,D1,D2):
-#     for info in infolist:
-#             print info['degree']
-            
-#             for deg in info['degree']:
-#                 #code.interact(local=locals())
-#                 print deg
-#                 if D2==deg:
-#                     query = "insert into educations1 (candidate_id,degree_id,institute_id) values"
-#                     for institute in info['%sinstitute'%D1]:
-#                         query+="(%d, '%v','%t','%u')," %(info['candidate_id'],D2,info['%sinstitute'%D1])
-#                         # Reconnect con now because *with* released it
-#                         con = mdb.connect(host, user, password, database)
-#                         with con:
-#                             cur = con.cursor()
-#                             cur.execute(query)
-#                     query = "insert into educations1 (candidate_id,degree_id,passing_year) values"
-#                     for institute in info['%sinstitute'%D1]:
-#                         query+="(%d, '%v','%t','%u')," %(info['candidate_id'],D2,info['%sinstitute'%D1])
-#                         # Reconnect con now because *with* released it
-#                         con = mdb.connect(host, user, password, database)
-#                         with con:
-#                             cur = con.cursor()
-#                             cur.execute(query)
 
-
-def insertToDB(infoList):
-    # Lists and dictionaries are passed *by reference* - this function will change them
-    # Max 1000 records can be inserted at a time
-    infoList = [el for el in infoList if not el['fileReadFailed']]
-    # Credentials and connection information
-    host = 'localhost'
-    user = 'root'
-    password = 'test123'
-    database = 'quezx'
-    # For writing to resumes2s table, this map is needed. The info dictionary has an 'extension' key that stores the required value
-    extensionMap = {
-    'doc':1,
-    'docx':2,
-    'pdf':3,
-    'rtf':4,
-    }
-    try:
-        # name,experience -> candidates table
-        con = mdb.connect(host, user, password, database)
-        #  *with* automatically releases resources; no need to call con.close()
-        with con:
-            cur = con.cursor()
-            for info in infoList:
-                cur.execute("insert into candidates (name,total_exp) values ('%s',%s)" %(info['name'],info['experience']))
-                insertid = "select last_insert_id()"
-                cur.execute(insertid)
-                lastID = cur.fetchone()
-                # Above returns a tuple like (80000L,)
-                info['candidate_id'] = lastID[0]
-        
-        # phone number -> phone_numbers table, linked with foreign key to candidates table
-        query = "insert into phone_numbers (candidate_id, number) values "
-        for info in infoList:
-            for number in info['phone'][:4]:
-                # Take just the first 4 numbers
-                query += "(%d,'%s'), " %(info['candidate_id'], number)
-        # Syntax error otherwise, remove the last whitespace and comma
-        query = query[:-2]
-        # Reconnect con now because *with* released it
-        con = mdb.connect(host, user, password, database)
-        with con:
-            cur = con.cursor()
-            cur.execute(query)
-            #code.interact(local=locals())
-        
-        # email -> emails table
-        query = "insert into emails (candidate_id, email) values "
-        for info in infoList:
-            for email in info['email'][:4]:
-                # Take just the first 4 emails
-                query += "(%d, '%s'), " %(info['candidate_id'], email)
-        # Syntax error otherwise, remove the last whitespace and comma
-        query = query[:-2]
-        # Reconnect con now because *with* released it
-        con = mdb.connect(host, user, password, database)
-        with con:
-            cur = con.cursor()
-            cur.execute(query)
-            #code.interact(local=locals())
-
-
-        #fetching degree ids from degree table
-        query="select id,degree from degrees"
-        con = mdb.connect(host, user, password, database)
-        with con:
-                cur = con.cursor()
-                cur.execute(query)
-                rows=cur.fetchall()
-        
-        for row in rows:
-            if row.degree.lower() in 'ca':
-                info['degree_id']=row.id
-            if row.degree.lower() in 'b.com':
-                info['degree_id']=row.id
-            if row.degree.lower() in 'icwa':
-                info['degree_id']=row.id
-            if row.degree.lower() in 'm.com':
-                info['degree_id']=row.id
-            if row.degree.lower() in 'mba':
-                info['degree_id']=row.id
-        
-        #degree,year-->educations 
-        for info in infoList:
-            for deg in info['degree']:
-                if r'ca' in deg:
-
-                    query="insert into educations (candidate_id,degree_id,passing_year) values(%d, %s,%s)" %(info['candidate_id'],info['degree_id'],info['%syear'%'c\.?a'])
-                    # Reconnect con now because *with* released it
-                    con = mdb.connect(host, user, password, database)
-                    with con:
-                        cur = con.cursor()
-                        try:    
-                            cur.execute(query)
-
-                        except mdb.Error as e:
-                            try:
-                                print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-                            except IndexError:
-                                print "MySQL Error %s"%str(e)
-                if r'b.com' in deg:
-                    #code.interact(local=locals())
-                    try:
-                        query="insert into educations (candidate_id,degree_id,passing_year) values(%d, %s,%s)" %(info['candidate_id'],info['degree_id'],info['%syear'%'b\.?com'])                                # Reconnect con now because *with* released it
-                        con = mdb.connect(host, user, password, database)
-                        with con:
-                            cur = con.cursor()
-                            cur.execute(query)
-                    except mdb.Error as e:
-                        try:
-                            print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-                        except IndexError:
-                            print "MySQL Error %s"%str(e)
-                if r'icwa' in deg:
-                    try:
-                        query="insert into educations (candidate_id,degree_id,passing_year) values(%d, %s,%s)" %(info['candidate_id'],info['degree_id'],info['%syear'%'icwa'])
-                        # Reconnect con now because *with* released it
-                        con = mdb.connect(host, user, password, database)
-                        with con:
-                            cur = con.cursor()
-                            cur.execute(query)
-                    except mdb.Error as e:
-                        try:
-                            print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-                        except IndexError:
-                            print "MySQL Error %s"%str(e)
-                if r'm.com' in deg:
-                    try:
-                        query="insert into educations (candidate_id,degree_id,passing_year) values(%d, %s,%s)" %(info['candidate_id'],info['degree_id'],info['%syear'%'m\.?com'])
-                        # Reconnect con now because *with* released it
-                        con = mdb.connect(host, user, password, database)
-                        with con:
-                            cur = con.cursor()
-                            cur.execute(query)
-                    except mdb.Error as e:
-                        try:
-                            print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-                        except IndexError:
-                            print "MySQL Error %s"%str(e)
-                if r'mba'in deg:
-                    try:
-                        query="insert into educations (candidate_id,degree_id,passing_year) values(%d, %s,%s)" %(info['candidate_id'],info['degree_id'],info['%syear'%'mba'])
-                        # Reconnect con now because *with* released it
-                        con = mdb.connect(host, user, password, database)
-                        with con:
-                            cur = con.cursor()
-                            cur.execute(query)
-                    except mdb.Error as e:
-                        try:
-                            print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-                        except IndexError:
-                            print "MySQL Error %s"%str(e)
-            
-        # for info in infoList:
-        #     for deg in info['degree']:
-        #         if r'ca' in deg:
-        #             query="insert into educations1 (candidate_id,degree_id,institute_id,passing_year) values(%d, '%s','%s','%s')" %(info['candidate_id'],'ca',info['%sinstitute'%'c\.?a'],info['%syear'%'c\.?a'])
-        #             # Reconnect con now because *with* released it
-        #             con = mdb.connect(host, user, password, database)
-        #             with con:
-        #                 cur = con.cursor()
-        #                 try:    
-        #                     cur.execute(query)
-
-        #                 except mdb.Error as e:
-        #                     try:
-        #                         print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-        #                     except IndexError:
-        #                         print "MySQL Error %s"%str(e)
-        #         if r'b.com' in deg:
-        #             #code.interact(local=locals())
-        #             try:
-        #                 query ="insert into educations1 (candidate_id,degree_id,institute_id,passing_year) values(%d, '%s','%s','%s')" %(info['candidate_id'], 'b.com',info['%sinstitute'%'b\.?com'],info['%syear'%'b\.?com'])
-        #                 # Reconnect con now because *with* released it
-        #                 con = mdb.connect(host, user, password, database)
-        #                 with con:
-        #                     cur = con.cursor()
-        #                     cur.execute(query)
-        #             except mdb.Error as e:
-        #                 try:
-        #                     print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-        #                 except IndexError:
-        #                     print "MySQL Error %s"%str(e)
-        #         if r'icwa' in deg:
-        #             try:
-        #                 query ="insert into educations1 (candidate_id,degree_id,institute_id,passing_year) values(%d, '%s','%s','%s')" %(info['candidate_id'], 'icwa',info['%sinstitute'%'icwa'],info['%syear'%'icwa'])
-        #                 # Reconnect con now because *with* released it
-        #                 con = mdb.connect(host, user, password, database)
-        #                 with con:
-        #                     cur = con.cursor()
-        #                     cur.execute(query)
-        #             except mdb.Error as e:
-        #                 try:
-        #                     print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-        #                 except IndexError:
-        #                     print "MySQL Error %s"%str(e)
-        #         if r'm.com' in deg:
-        #             try:
-        #                 query ="insert into educations1 (candidate_id,degree_id,institute_id,passing_year) values(%d, '%s','%s','%s')" %(info['candidate_id'], 'm.com',info['%sinstitute'%'m\.?com'],info['%syear'%'m\.?com'])
-        #                 # Reconnect con now because *with* released it
-        #                 con = mdb.connect(host, user, password, database)
-        #                 with con:
-        #                     cur = con.cursor()
-        #                     cur.execute(query)
-        #             except mdb.Error as e:
-        #                 try:
-        #                     print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-        #                 except IndexError:
-        #                     print "MySQL Error %s"%str(e)
-        #         if r'mba'in deg:
-        #             try:
-        #                 query ="insert into educations1 (candidate_id,degree_id,institute_id,passing_year) values(%d, '%s','%s','%s')" %(info['candidate_id'], 'mba',info['%sinstitute'%'mba'],info['%syear'%'mba'])
-        #                 # Reconnect con now because *with* released it
-        #                 con = mdb.connect(host, user, password, database)
-        #                 with con:
-        #                     cur = con.cursor()
-        #                     cur.execute(query)
-        #             except mdb.Error as e:
-        #                 try:
-        #                     print"MySQL Error [%d]: %s"%(e.args[0],e.args[1])
-        #                 except IndexError:
-        #                     print "MySQL Error %s"%str(e)
-        
-        
-       
-
-    except Exception as e:
-        with indent(4):
-            puts(str(e))
-    
-def searchDB(tableName):
-    returnVal = False
-    # Credentials and connection information
-    host = 'localhost'
-    user = 'root'
-    password = 'test123'
-    database = 'quezx'
-    try:
-        con = mdb.connect(host, user, password, database)
-        with con:
-            cur = con.cursor()
-            cur.execute('select * from %s;' %tableName)
-            val = cur.fetchone()
-            if val:
-                returnVal = val
-                print val
-    except Exception as e:
-        with indent(4):
-            puts(str(e))
-    finally:
-        con.close()
-        return returnVal
-
-def converttoZIP(file1):
-    myzip=zipfile.ZipFile('filesread.zip', 'a')
-    myzip.write(file1)
-    myzip.close()
-
-def convertToHTML(infoDict, outdir='resumesHTML'):
-    '''
-    Takes a set or list of fileNames.
-    Default takes resumes in the directory resumes/, and puts converted files in resumesHTML/
-    It then reads in the converted files, and deletes the folder containing the converted files
-    Note: Takes ~ 1 second per file
-    '''
-    try:
-        # Uses LibreOffice's command line utility to convert the file to HTML
-        command = 'soffice --headless --convert-to html --outdir "resumesHTML" "%s"' %(infoDict['fileName'])
-        status = os.popen(command).read()
-        # The second argument creates the converted file's name
-        converted = open('%s/%s' %(outdir, ".".join(infoDict['fileName'].split('/')[-1].split('.')[:-1])+".html"))
-        html = converted.read()
-        # Following try-except block is for removing characters that cause a format error
-        try: 
-            infoDict['resumeHTML'] = html.decode('ascii', 'ignore')
-        except:
-            infoDict['resumeHTML'] = html.encode('ascii', 'ignore')
-            try:
-                infoDict['resumeHTML'] = html
-            except:
-                infoDict['resumeHTML'] = ''
-        converted.close()
-        os.system('rm -rf %s' %(outdir))
-    except Exception as e:
-        print str(e)
-        infoDict['resumeHTML'] = ""
-        pass
     
 class Parse():
     # List (of dictionaries) that will store all of the values
@@ -401,13 +83,9 @@ class Parse():
     sentences = []
 
     def __init__(self, verbose=False):
-        #csv = exportToCSV()
-        puts(colored.yellow('Starting Programme'))
-        t = [0,0] # For benchmarking
+        print('Starting Programme')
         fields = ["name", "address", "email", "phone", "mobile", "telephone", "residence status","experience","degree","cainstitute","cayear","caline","b.cominstitute","b.comyear","b.comline","icwainstitue","icwayear","icwaline","m.cominstitute","m.comyear","m.comline","mbainstitute","mbayear","mbaline"]
 
-        t[0] = clock()
-        
         # Glob module matches certain patterns
         doc_files = glob.glob("resumes/*.doc")
         docx_files = glob.glob("resumes/*.docx")
@@ -416,85 +94,34 @@ class Parse():
         text_files = glob.glob("resumes/*.txt")
 
         files = set(doc_files + docx_files + pdf_files + rtf_files + text_files)
-        # For testing; remove next line later
-        files = list(files)[:5]
-        with indent(4): puts(colored.blue("%d files identified" %len(files)))
-        t[1] = clock()
-        with indent(8): puts(colored.white("took %f seconds" %(t[1]-t[0])))
-        
-        col = 30
-        # puts(columns([colored.magenta('File Name'), col], [colored.magenta('Read Failed'), col], [colored.magenta('Name'), col], [colored.magenta('email'), col], [colored.magenta('Phone'), col]))
+        files = list(files)
+        print ("%d files identified" %len(files))
+ 
         for f in files:
+            print("Reading File %s"%f)
             # info is a dictionary that stores all the data obtained from parsing
             info = {}
-            
-            t[0] = clock()
-            self.inputString, info['extension'] = self.readFile(f)
-            t[1] = clock()
-            readTime = round(t[1]-t[0],6)
-            
+
+            self.inputString, info['extension'] = self.readFile(f)           
             info['fileName'] = f
-            if len(self.inputString) == 0:
-                info['fileReadFailed'] = True
-            else:
-                info['fileReadFailed'] = False
-                converttoZIP(f)
-            t[0] = clock()
+
             self.tokenize(self.inputString)
-            t[1] = clock()
-            stringProcessTime = round(t[1]-t[0], 6)
-            t[0] = clock()
+
             self.getEmail(self.inputString, info)
-            t[1] = clock()
-            emailTime = round(t[1]-t[0], 6)
-            t[0] = clock()
+
             self.getPhone(self.inputString, info)
-            t[1] = clock()
-            phoneTime = round(t[1]-t[0], 6)
-            t[0] = clock()
+
             self.getName(self.inputString, info)
-            t[1] = clock()
-            nameTime = round(t[1]-t[0], 6)
+
             self.Qualification(self.inputString,info)
+
             self.getExperience(self.inputString,info,debug=False)
-            # t[0] = clock()
-            # convertToHTML(info)
-            # t[1] = clock()
-            #csv.write(info)
+
+            csv=exportToCSV()
+            csv.write(info)
             self.information.append(info)
-            print "\n", pprint(info), "\n"
-            
-            # Debug
-            # code.interact(local=dict(globals(), **locals()))
-        
-        #insertToDB(self.information) #used for inserting the final obtained values into the database
-        # code.interact(local = locals())
-       
-        failedCount = 0
-        for el in self.information:
-            if el["fileReadFailed"]:
-                failedCount += 1
-        print "\n%d/%d files processed. Look into or delete damaged files.\n" %(len(files)-failedCount, len(files))
-        response = raw_input("Write final result to file? (y/n): ")
-        if response == 'y':
-            out_file = raw_input("Input file name: ")
-            if ".txt" not in out_file: out_file = str(out_file) + ".txt"
-            while True:
-                try:
-                    out = open(str(out_file), "w")
-                    t[0] = clock()
-                    json_string = json.dumps(self.information)
-                    out.write(json_string)
-                    t[1] = clock()
-                    print "\n...... dumping info to file (%s) in %f seconds" %(out_file,(t[1]-t[0]))
-                    out.close()
-                    break
-                except:
-                    response = raw_input("Write failed; retry? (y/n): ")
-                    if response == 'y':
-                        continue
-                    else:
-                        break
+            print (info)
+
         
 
     def readFile(self, fileName):
@@ -518,11 +145,13 @@ class Parse():
                 return convertDocxToText(fileName), extension
             except:
                 return ''
-        elif extension == "rtf":
-            try:
-                return convertRtfToText(fileName), extension
-            except:
-                return ''
+                pass
+        #elif extension == "rtf":
+        #    try:
+        #        return convertRtfToText(fileName), extension
+        #    except:
+        #        return ''
+        #        pass
         elif extension == "pdf":
             # ps2ascii converst pdf to ascii text
             # May have a potential formatting loss for unicode characters
@@ -531,6 +160,7 @@ class Parse():
                 return convertPDFToText(fileName), extension
             except:
                 return ''
+                pass
         else:
             print 'Unsupported format'
             return '', ''
@@ -583,9 +213,7 @@ class Parse():
         Needs an input string, a dictionary where values are being stored, and an optional parameter for debugging.
         Modules required: clock from time, code.
         '''
-        # Note: The dictionary passed is passed by reference, so it will be changed by the function
-        # t = [0,0] # For benchmarking
-        # t[0] = clock()
+
         email = None
         try:
             pattern = re.compile(r'\S*@\S*')
@@ -593,9 +221,9 @@ class Parse():
             email = matches
         except Exception as e:
             print e
-        # t[1] = clock()
+
         infoDict['email'] = email
-        # print "...... email in %f seconds" %(t[1]-t[0])
+
         if debug:
             print "\n", pprint(infoDict), "\n"
             code.interact(local=locals())
@@ -607,8 +235,7 @@ class Parse():
         Needs an input string, a dictionary where values are being stored, and an optional parameter for debugging.
         Modules required: clock from time, code.
         '''
-        t = [0,0]
-        t[0] = clock()
+
         number = None
         try:
             pattern = re.compile(r'([+(]?\d+[)\-]?[ \t\r\f\v]*[(]?\d{2,}[()\-]?[ \t\r\f\v]*\d{2,}[()\-]?[ \t\r\f\v]*\d*[ \t\r\f\v]*\d*[ \t\r\f\v]*)')
@@ -648,9 +275,9 @@ class Parse():
             number = match
         except:
             pass
-        t[1] = clock()
+
         infoDict['phone'] = number
-        # print "...... phone numbers in %f seconds" %(t[1]-t[0])
+
         if debug:
             print "\n", pprint(infoDict), "\n"
             code.interact(local=locals())
@@ -662,13 +289,13 @@ class Parse():
         Needs an input string, a dictionary where values are being stored, and an optional parameter for debugging.
         Modules required: clock from time, code.
         '''
-        t = [0,0]
+
         # Reads Indian Names from the file, reduce all to lower case for easy comparision [Name lists]
         indianNames = open("allNames.txt", "r").read().lower()
         # Lookup in a set is much faster
         indianNames = set(indianNames.split())
         
-        t[0] = clock()
+
         otherNameHits = []
         nameHits = []
         name = None
@@ -711,10 +338,10 @@ class Parse():
         except Exception as e:
             print traceback.format_exc()
             print e         
-        t[1] = clock()
+
         infoDict['name'] = name
         infoDict['otherNameHits'] = otherNameHits
-        # print "...... name in %f seconds" %(t[1]-t[0])
+
         if debug:
             print "\n", pprint(infoDict), "\n"
             code.interact(local=locals())
@@ -737,7 +364,7 @@ class Parse():
             print traceback.format_exc()
             print e 
         if experience:
-            infoDict['experience'] = int(experience)
+            infoDict['experience'] = experience
         else:
             infoDict['experience']=0
         if debug:
@@ -749,7 +376,6 @@ class Parse():
         
 
     def getQualification(self,inputString,infoDict,D1,D2):
-        t = [0,0]
         #key=list(qualification.keys())
         qualification={'institute':'','year':''}
         nameofinstitutes=open('nameofinstitutes.txt','r').read().lower()#open file which contains keywords like institutes,university usually  fond in institute names
@@ -758,9 +384,7 @@ class Parse():
         chunkParser = nltk.RegexpParser(instiregex)
         
         
-        try:
-            t[0] = clock()
-            
+        try:           
             index=[]
             line=[]#saves all the lines where it finds the word of that education
             for ind, sentence in enumerate(self.lines):#find the index of the sentence where the degree is find and then analyse that sentence
@@ -772,7 +396,10 @@ class Parse():
                 for indextocheck in index:#checks all nearby lines where it founds the degree word.ex-'CA'
                     for i in [indextocheck,indextocheck+1]: #checks the line with the keyword and just the next line to it
                         try:
-                            wordstr=" ".join(words[0] for words in self.lines[i])#string of that particular line
+                            try:
+                                wordstr=" ".join(words[0] for words in self.lines[i])#string of that particular line
+                            except:
+                                wordstr=""
                             #if re.search(r'\D\d{1,3}\D',wordstr.lower()) and qualification['rank']=='':
                                     #qualification['rank']=re.findall(r'\D\d{1,3}\D',wordstr.lower())
                                     #line.append(wordstr)
@@ -789,7 +416,7 @@ class Parse():
                                 
                         except Exception as e:
                             print traceback.format_exc()
-            t[1] = clock()
+
             if D1=='c\.?a':
                 infoDict['%sinstitute'%D1] ="I.C.A.I"
             else:
@@ -801,9 +428,7 @@ class Parse():
                 infoDict['%syear'%D1] = int(qualification['year'][0])
             else:
                 infoDict['%syear'%D1] =0
-            infoDict['%sline'%D1]=set(line)
-            #print "...... qualification in %f seconds" %(t[1]-t[0])
-            #return infoDict['%sinstitute'%D1],infoDict['%syear'%D1],set(line)
+            infoDict['%sline'%D1]=list(set(line))
         except Exception as e:
             print traceback.format_exc()
             print e 
